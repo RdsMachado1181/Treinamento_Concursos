@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+<link rel="stylesheet" href="comecarProva.css"/>
+<link rel="stylesheet" href="comecarProva.js"/>
+
+  <title>Prova</title>
+ 
+</head>
+<body>
+
+    <style>
+
+         
+body {
+  font-family: Arial, sans-serif;
+  background-color: #f0f0f0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px;
+  margin: 0;
+}
+.container {
+  background-color: #fff;
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  max-width: 800px;
+}
+h2 {
+  text-align: center;
+  font-size: 28px;
+  margin-bottom: 20px;
+}
+.topo {
+  display: flex;
+  justify-content: space-between;
+  font-size: 20px;
+  margin-bottom: 20px;
+}
+.tempo {
+  font-weight: bold;
+}
+.pergunta {
+  background-color: #fff;
+  padding: 30px;
+  margin-bottom: 15px;
+  border-radius: 8px;
+  box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+  text-align: center;
+  font-size: 18px;
+  min-height: 200px;
+}
+.respostas {
+  text-align: left;
+  margin-top: 20px;
+}
+.respostas label {
+  display: block;
+  margin-bottom: 10px;
+}
+.botao-container {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 20px;
+}
+.botao {
+  padding: 10px 20px;
+  font-size: 16px;
+  cursor: pointer;
+  border: none;
+  border-radius: 5px;
+  background-color: #4CAF50;
+  color: white;
+}
+.botao-finalizar {
+  background-color: #f44336;
+}
+ 
+
+
+    </style>
+  <div class="container">
+    <h2>Prova</h2>
+    <!-- Topo com o tempo total -->
+    <div class="topo">
+      <div id="tempoTotal" class="tempo">Tempo Total: 00:00</div>
+      <div id="tempoPergunta" class="tempo">Tempo da Pergunta: 00:00</div>
+    </div>
+
+    <!-- Caixa de pergunta -->
+    <div id="perguntas">
+      <!-- Pergunta será inserida aqui dinamicamente -->
+    </div>
+
+    <!-- Botões -->
+    <div class="botao-container">
+      <button class="botao" onclick="proximaPergunta()">Próxima Pergunta</button>
+      <button class="botao botao-finalizar" onclick="finalizarProva()">Finalizar Prova</button>
+    </div>
+  </div>
+<script>
+
+     
+    // Carregar as perguntas e tempo da prova do localStorage
+    let perguntas = JSON.parse(localStorage.getItem("perguntas")) || [];
+    let tempoTotalMin = parseInt(localStorage.getItem("tempoTotal")) || 30; // minutos
+    let tempoTotal = tempoTotalMin * 60; // em segundos
+    let tempoPorPergunta = tempoTotalMin / perguntas.length; // minutos por pergunta
+    let perguntaAtual = 0;
+    let intervaloTempo;
+    let tempoPerguntaRestante;
+    let intervaloPergunta;
+    let respostasCorretas = 0;
+
+    // Função para formatar o tempo
+    function formatarTempo(segundos) {
+      const min = Math.floor(segundos / 60);
+      const sec = segundos % 60;
+      return `${min}:${sec < 10 ? '0' + sec : sec}`;
+    }
+
+    // Função para carregar e exibir os tempos
+    function carregarTempos() {
+      document.getElementById("tempoTotal").textContent = `Tempo Total: ${formatarTempo(tempoTotal)}`;
+      document.getElementById("tempoPergunta").textContent = `Tempo da Pergunta: ${formatarTempo(tempoPerguntaRestante)}`;
+    }
+
+    // Função para iniciar o cronômetro de tempo total
+    function iniciarCronometroTotal() {
+      intervaloTempo = setInterval(() => {
+        tempoTotal--;
+        document.getElementById("tempoTotal").textContent = `Tempo Total: ${formatarTempo(tempoTotal)}`;
+        if (tempoTotal <= 0) {
+          clearInterval(intervaloTempo);
+          alert("Tempo esgotado!");
+          finalizarProva();
+        }
+      }, 1000);
+    }
+
+    // Função para iniciar o cronômetro do tempo da pergunta
+    function iniciarCronometroPergunta() {
+      tempoPerguntaRestante = Math.floor(tempoPorPergunta * 60); // Converte para segundos
+      document.getElementById("tempoPergunta").textContent = `Tempo da Pergunta: ${formatarTempo(tempoPerguntaRestante)}`;
+      intervaloPergunta = setInterval(() => {
+        tempoPerguntaRestante--;
+        document.getElementById("tempoPergunta").textContent = `Tempo da Pergunta: ${formatarTempo(tempoPerguntaRestante)}`;
+        if (tempoPerguntaRestante <= 0) {
+          clearInterval(intervaloPergunta);
+          alert("Tempo da pergunta esgotado! Passando para a próxima.");
+          proximaPergunta();  // Passa para a próxima pergunta automaticamente
+        }
+      }, 1000);
+    }
+
+    // Função para mostrar a pergunta atual
+    function mostrarPergunta() {
+      const container = document.getElementById("perguntas");
+      container.innerHTML = "";
+
+      if (perguntaAtual >= perguntas.length) {
+        alert("Você completou a prova!");
+        finalizarProva();
+        return;
+      }
+
+      const pergunta = perguntas[perguntaAtual];
+      const div = document.createElement("div");
+      div.className = "pergunta";
+
+      let html = `<h3>${pergunta.texto}</h3><div class="respostas">`;
+      pergunta.respostas.forEach((resposta, i) => {
+        html += `
+          <label>
+            <input type="radio" name="resposta" value="${i}">
+            ${resposta}
+          </label>
+        `;
+      });
+      html += "</div>";
+      div.innerHTML = html;
+
+      container.appendChild(div);
+
+      // Inicia o cronômetro da pergunta
+      iniciarCronometroPergunta();
+    }
+
+    // Função para passar para a próxima pergunta
+    function proximaPergunta() {
+      const selecionada = document.querySelector('input[name="resposta"]:checked');
+      if (!selecionada) {
+        alert("Por favor, selecione uma resposta.");
+        return;
+      }
+
+      const respostaSelecionada = parseInt(selecionada.value);
+      if (respostaSelecionada === perguntas[perguntaAtual].correta) {
+        respostasCorretas++;
+      }
+
+      // Passa para a próxima pergunta
+      perguntaAtual++;
+
+      // Reinicia o cronômetro para a próxima pergunta
+      clearInterval(intervaloPergunta);
+      mostrarPergunta();
+    }
+
+    // Função para finalizar a prova e redirecionar
+    function finalizarProva() {
+      clearInterval(intervaloTempo);
+      alert("Prova finalizada!");
+      localStorage.setItem('resultado', respostasCorretas);  // Salva o resultado no localStorage
+      window.location.href = "resultado.html";  // redireciona para a página resultado
+    }
+
+    // Início da prova
+    carregarTempos();
+    mostrarPergunta();
+    iniciarCronometroTotal();
+   
+
+   
+</script>
+  
+</body>
+</html>
